@@ -142,6 +142,11 @@ public Action Cmd_Stats(int client, int args)
 		return Plugin_Handled;
 	}
 	
+	if (!gB_PluginEnabled.BoolValue)
+	{
+		return Plugin_Handled;
+	}
+	
 	char gB_SteamID64[17];
 	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17);
 	
@@ -204,6 +209,11 @@ public int Stats_MenuHandler(Menu menu, MenuAction action, int client, int item)
 public Action Cmd_ResetPlayer(int client, int args)
 {
 	if (!IsValidClient(client))
+	{
+		return Plugin_Handled;
+	}
+	
+	if (!gB_PluginEnabled.BoolValue)
 	{
 		return Plugin_Handled;
 	}
