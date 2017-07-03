@@ -56,14 +56,32 @@ public void OnPluginStart()
 	
 	SQL_StartConnection();
 	
-	for (int i = 0; i <= MaxClients; i++)
+}
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	CreateNative("SS_GetKillsAmount", Native_GetKillsAmount);
+	CreateNative("SS_GetDeathsAmount", Native_GetDeathsAmount);
+	CreateNative("SS_GetShotsAmount", Native_GetShotsAmount);
+	CreateNative("SS_GetHitsAmount", Native_GetHitsAmount);
+	CreateNative("SS_GetHeadshotsAmount", Native_GetHSAmount);
+	CreateNative("SS_GetAssistsAmount", Native_GetAssistsAmount);
+	CreateNative("SS_GetPlayTimeAmount", Native_GetPlayTimeAmount);
+	
+	RegPluginLibrary("simplestats");
+	
+	if (late)
 	{
-		if (IsValidClient(i))
+		for (int i = 0; i <= MaxClients; i++)
 		{
-			OnClientPutInServer(i);
+			if (IsValidClient(i))
+			{
+				OnClientPutInServer(i);
+			}
 		}
 	}
 	
+	return APLRes_Success;
 }
 
 public void OnClientPutInServer(int client)
@@ -171,7 +189,7 @@ void OpenStatsMenu(int client, int displayto)
 	SecondsToTime(CurrentTime, gH_PlayTime2);
 	
 	int gB_Accuracy = 0;
-	if(gB_PHits[client] != 0 && gB_PShots[client] != 0)
+	if (gB_PHits[client] != 0 && gB_PShots[client] != 0)
 	{
 		gB_Accuracy = (100 * gB_PHits[client] + gB_PShots[client] / 2) / gB_PShots[client];
 	}
@@ -392,7 +410,7 @@ public void Event_PlayerDeath(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
-	if(attacker == client)
+	if (attacker == client)
 	{
 		return;
 	}
@@ -421,7 +439,7 @@ public void Event_WeaponFire(Event e, const char[] name, bool dontBroadcast)
 	char FiredWeapon[32];
 	GetEventString(e, "weapon", FiredWeapon, sizeof(FiredWeapon));
 	
-	if(StrEqual(FiredWeapon, "weapon_knife") || StrEqual(FiredWeapon, "hegrenade") || StrEqual(FiredWeapon, "flashbang") || StrEqual(FiredWeapon, "smokegrenade") || StrEqual(FiredWeapon, "molotov") || StrEqual(FiredWeapon, "incgrenade") || StrEqual(FiredWeapon, "decoy"))
+	if (StrEqual(FiredWeapon, "weapon_knife") || StrEqual(FiredWeapon, "hegrenade") || StrEqual(FiredWeapon, "flashbang") || StrEqual(FiredWeapon, "smokegrenade") || StrEqual(FiredWeapon, "molotov") || StrEqual(FiredWeapon, "incgrenade") || StrEqual(FiredWeapon, "decoy"))
 	{
 		return;
 	}
@@ -547,14 +565,14 @@ void SQL_StartConnection()
 stock int SecondsToTime(int seconds, char[] buffer)
 {
 	int mins, secs;
-	if( seconds >= 60)
+	if (seconds >= 60)
 	{
 		mins = RoundToFloor(float(seconds / 60));
 		seconds = seconds % 60;
-    }
+	}
 	secs = RoundToFloor(float(seconds));
-
-	if( mins )
+	
+	if (mins)
 		Format(buffer, 70, "%s%d mins, ", buffer, mins);
 	
 	Format(buffer, 70, "%s%d secs", buffer, secs);
@@ -569,4 +587,38 @@ stock bool IsValidClient(int client, bool alive = false, bool bots = false)
 		return true;
 	}
 	return false;
+}
+
+public int Native_GetKillsAmount(Handle handler, int numParams)
+{
+	return gB_PKills[GetNativeCell(1)];
+}
+
+public int Native_GetDeathsAmount(Handle handler, int numParams)
+{
+	return gB_PDeaths[GetNativeCell(1)];
+}
+
+public int Native_GetShotsAmount(Handle handler, int numParams)
+{
+	return gB_PShots[GetNativeCell(1)];
+}
+public int Native_GetHitsAmount(Handle handler, int numParams)
+{
+	return gB_PHits[GetNativeCell(1)];
+}
+
+public int Native_GetHSAmount(Handle handler, int numParams)
+{
+	return gB_PHS[GetNativeCell(1)];
+}
+
+public int Native_GetAssistsAmount(Handle handler, int numParams)
+{
+	return gB_PAssists[GetNativeCell(1)];
+}
+
+public int Native_GetPlayTimeAmount(Handle handler, int numParams)
+{
+	return gB_PlayTime[GetNativeCell(1)];
 } 
