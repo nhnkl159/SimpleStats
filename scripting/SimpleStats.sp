@@ -392,6 +392,11 @@ public void Event_PlayerDeath(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
+	if(attacker == client)
+	{
+		return;
+	}
+	
 	//Player Stats//
 	gB_PKills[attacker]++;
 	gB_PDeaths[client]++;
@@ -416,7 +421,7 @@ public void Event_WeaponFire(Event e, const char[] name, bool dontBroadcast)
 	char FiredWeapon[32];
 	GetEventString(e, "weapon", FiredWeapon, sizeof(FiredWeapon));
 	
-	if (StrEqual(FiredWeapon, "weapon_knife", false))
+	if(StrEqual(FiredWeapon, "weapon_knife") || StrEqual(FiredWeapon, "hegrenade") || StrEqual(FiredWeapon, "flashbang") || StrEqual(FiredWeapon, "smokegrenade") || StrEqual(FiredWeapon, "molotov") || StrEqual(FiredWeapon, "incgrenade") || StrEqual(FiredWeapon, "decoy"))
 	{
 		return;
 	}
