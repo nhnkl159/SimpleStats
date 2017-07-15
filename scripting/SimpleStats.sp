@@ -3,11 +3,12 @@
 #define DEBUG
 
 #define PLUGIN_AUTHOR "nhnkl159"
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 #include <sourcemod>
 #include <sdktools>
 #include <colors>
+#include <simplestats>
 
 #define PREFIX "\x05[SimpleStats]\x01"
 
