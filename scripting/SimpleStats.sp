@@ -27,6 +27,8 @@ int gB_RemoveClient[MAXPLAYERS + 1];
 
 // === ConVars === //
 ConVar gB_PluginEnabled;
+ConVar gB_MinimumPlayers;
+ConVar gB_WarmUP;
 
 public Plugin myinfo = 
 {
@@ -53,9 +55,13 @@ public void OnPluginStart()
 	
 	// === ConVars && More === //
 	gB_PluginEnabled = CreateConVar("sm_ss_enabled", "1", "Sets whether or not to record stats");
+	gB_MinimumPlayers = CreateConVar("sm_ss_minplayers", "4", "Minimum players to start record stats");
+	gB_WarmUP = CreateConVar("sm_ss_warmup", "1", "Record stats while we are in warmup ?");
+	
 	
 	SQL_StartConnection();
 	
+	AutoExecConfig(true, "sm_simplestats");
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -194,11 +200,17 @@ void OpenStatsMenu(int client, int displayto)
 		gB_Accuracy = (100 * gB_PHits[client] + gB_PShots[client] / 2) / gB_PShots[client];
 	}
 	
+	int gB_HSP = 0;
+	if (gB_PHits[client] != 0 && gB_PHS[client] != 0)
+	{
+		gB_HSP = (100 * gB_PHits[client] + gB_PHS[client] / 2) / gB_PHS[client];
+	}
+	
 	FormatEx(gH_Kills, 128, "Your total kills : %d", gB_PKills[client]);
 	FormatEx(gH_Deaths, 128, "Your total deaths : %d", gB_PDeaths[client]);
 	FormatEx(gH_Shots, 128, "Your total shots : %d", gB_PShots[client]);
 	FormatEx(gH_Hits, 128, "Your total hits : %d (Accuracy : %d%%%)", gB_PHits[client], gB_Accuracy);
-	FormatEx(gH_HS, 128, "Your total headshots : %d", gB_PHS[client]);
+	FormatEx(gH_HS, 128, "Your total headshots : %d (HS Percent : %d%%%)", gB_PHS[client], gB_HSP);
 	FormatEx(gH_Assists, 128, "Your total assists : %d", gB_PAssists[client]);
 	FormatEx(gH_PlayTime, 128, "Play time : %s", gH_PlayTime2);
 	
@@ -399,6 +411,16 @@ public void Event_PlayerDeath(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
+	if(GetPlayersCount() < gB_MinimumPlayers.IntValue)
+	{
+		return;
+	}
+	
+	if(InWarmUP() && !gB_WarmUP.BoolValue)
+	{
+		return;
+	}
+	
 	//Check shit
 	int client = GetClientOfUserId(GetEventInt(e, "userid"));
 	int attacker = GetClientOfUserId(GetEventInt(e, "attacker"));
@@ -436,6 +458,16 @@ public void Event_WeaponFire(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
+	if(GetPlayersCount() < gB_MinimumPlayers.IntValue)
+	{
+		return;
+	}
+	
+	if(InWarmUP() && !gB_WarmUP.BoolValue)
+	{
+		return;
+	}
+	
 	char FiredWeapon[32];
 	GetEventString(e, "weapon", FiredWeapon, sizeof(FiredWeapon));
 	
@@ -467,6 +499,16 @@ public void Event_PlayerHurt(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
+	if(GetPlayersCount() < gB_MinimumPlayers.IntValue)
+	{
+		return;
+	}
+	
+	if(InWarmUP() && !gB_WarmUP.BoolValue)
+	{
+		return;
+	}
+	
 	//Check shit
 	int client = GetClientOfUserId(GetEventInt(e, "userid"));
 	int attacker = GetClientOfUserId(GetEventInt(e, "attacker"));
@@ -482,7 +524,7 @@ public void Event_PlayerHurt(Event e, const char[] name, bool dontBroadcast)
 	if (gB_ClientTeam != gB_AttackerTeam)
 	{
 		//Player Stats//
-		gB_PHits[client]++;
+		gB_PHits[attacker]++;
 	}
 }
 
@@ -578,6 +620,18 @@ stock int SecondsToTime(int seconds, char[] buffer)
 	Format(buffer, 70, "%s%d secs", buffer, secs);
 }
 
+stock int GetPlayersCount()
+{
+	int count = 0;
+	for (int i = 0; i < MaxClients; i++)
+	{
+		if(IsValidClient(i))
+		{
+			count++;
+		}
+	}
+	return count;
+}
 
 
 stock bool IsValidClient(int client, bool alive = false, bool bots = false)
@@ -621,4 +675,9 @@ public int Native_GetAssistsAmount(Handle handler, int numParams)
 public int Native_GetPlayTimeAmount(Handle handler, int numParams)
 {
 	return gB_PlayTime[GetNativeCell(1)];
-} 
+}
+
+stock bool InWarmUP() 
+{
+	return GameRules_GetProp("m_bWarmupPeriod") != 0;
+}
