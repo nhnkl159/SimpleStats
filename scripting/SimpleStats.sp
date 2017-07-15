@@ -30,7 +30,10 @@ int gB_RemoveClient[MAXPLAYERS + 1];
 ConVar gB_PluginEnabled;
 ConVar gB_MinimumPlayers;
 ConVar gB_WarmUP;
+<<<<<<< HEAD
 ConVar gB_CountKnife;
+=======
+>>>>>>> origin/master
 
 public Plugin myinfo = 
 {
@@ -59,7 +62,10 @@ public void OnPluginStart()
 	gB_PluginEnabled = CreateConVar("sm_ss_enabled", "1", "Sets whether or not to record stats");
 	gB_MinimumPlayers = CreateConVar("sm_ss_minplayers", "4", "Minimum players to start record stats");
 	gB_WarmUP = CreateConVar("sm_ss_warmup", "1", "Record stats while we are in warmup ?");
+<<<<<<< HEAD
 	gB_CountKnife = CreateConVar("sm_ss_countknife", "1", "Record knife when attacker hits ?");
+=======
+>>>>>>> origin/master
 	
 	
 	SQL_StartConnection();
@@ -512,6 +518,7 @@ public void Event_PlayerHurt(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
+<<<<<<< HEAD
 	char FiredWeapon[32];
 	GetEventString(e, "weapon", FiredWeapon, sizeof(FiredWeapon));
 	
@@ -520,6 +527,8 @@ public void Event_PlayerHurt(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
+=======
+>>>>>>> origin/master
 	//Check shit
 	int client = GetClientOfUserId(GetEventInt(e, "userid"));
 	int attacker = GetClientOfUserId(GetEventInt(e, "attacker"));
@@ -691,4 +700,8 @@ public int Native_GetPlayTimeAmount(Handle handler, int numParams)
 stock bool InWarmUP() 
 {
 	return GameRules_GetProp("m_bWarmupPeriod") != 0;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/master
