@@ -138,7 +138,7 @@ public void OnClientPutInServer(int client)
 	GetClientIP(client, gB_ClientIP, 64);
 	
 	char gB_Query[512];
-	FormatEx(gB_Query, 512, "INSERT INTO `players` (`steamid`, `name`, `ip`, `lastconn`) VALUES ('%s', '%s', '%s', CURRENT_TIMESTAMP()) ON DUPLICATE KEY UPDATE `name` = '%s', `ip` = '%s', `lastconn` = CURRENT_TIMESTAMP();", gB_SteamID64, gB_EscapedName, gB_ClientIP, gB_EscapedName, gB_ClientIP);
+	FormatEx(gB_Query, 512, "INSERT INTO `players` (`steamid`, `name`, `ip`, `lastconn`) VALUES ('%s', '%s', '%s', UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE `name` = '%s', `ip` = '%s', `lastconn` = CURRENT_TIMESTAMP();", gB_SteamID64, gB_EscapedName, gB_ClientIP, gB_EscapedName, gB_ClientIP);
 	gB_DBSQL.Query(SQL_InsertPlayer_Callback, gB_Query, GetClientSerial(client), DBPrio_Normal);
 }
 
@@ -350,8 +350,13 @@ public void SQL_InsertPlayer_Callback(Database db, DBResultSet results, const ch
 	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17);
 	
 	char gB_Query[512];
+	char gB_Query2[512];
+	
 	FormatEx(gB_Query, 512, "SELECT kills, deaths, shots, hits, headshots, assists, secsonserver FROM `players` WHERE `steamid` = '%s'", gB_SteamID64);
 	gB_DBSQL.Query(SQL_SelectPlayer_Callback, gB_Query, GetClientSerial(client), DBPrio_Normal);
+	
+	FormatEx(gB_Query2, 512, "UPDATE `players` SET `lastconn`= UNIX_TIMESTAMP() WHERE `steamid` = '%s';", gB_SteamID64);
+	gB_DBSQL.Query(SQL_UpdatePlayer2_Callback, gB_Query2, GetClientSerial(client), DBPrio_Normal);
 }
 
 public void SQL_SelectPlayer_Callback(Database db, DBResultSet results, const char[] error, any data)
@@ -559,6 +564,23 @@ void FuckingUpdateThatSHITHeadPlayer(int client, float timeonserver)
 }
 
 public void SQL_UpdatePlayer_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	int client = GetClientFromSerial(data);
+	if (results == null)
+	{
+		if (client == 0)
+		{
+			LogError("[SS] Client is not valid. Reason: %s", error);
+		}
+		else
+		{
+			LogError("[SS] Cant use client data. Reason: %s", client, error);
+		}
+		return;
+	}
+}
+
+public void SQL_UpdatePlayer2_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	int client = GetClientFromSerial(data);
 	if (results == null)
