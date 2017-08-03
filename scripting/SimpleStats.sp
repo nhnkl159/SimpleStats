@@ -122,8 +122,8 @@ public void OnClientPutInServer(int client)
 	char gB_PlayerName[MAX_NAME_LENGTH];
 	GetClientName(client, gB_PlayerName, MAX_NAME_LENGTH);
 	
-	char gB_SteamID64[17];
-	if (!GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17))
+	char gB_SteamID64[32];
+	if (!GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32))
 	{
 		KickClient(client, "Verification problem , please reconnect.");
 		return;
@@ -174,8 +174,8 @@ public Action Cmd_Stats(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	char gB_SteamID64[17];
-	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17);
+	char gB_SteamID64[32];
+	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32);
 	
 	OpenStatsMenu(client, client);
 	
@@ -295,8 +295,8 @@ public int AreYouSureHandler(Menu menu, MenuAction action, int client, int item)
 		{
 			int target = GetClientFromSerial(gB_RemoveClient[client]);
 			
-			char gB_SteamID64[17];
-			GetClientAuthId(target, AuthId_SteamID64, gB_SteamID64, 17);
+			char gB_SteamID64[32];
+			GetClientAuthId(target, AuthId_SteamID64, gB_SteamID64, 32);
 			char gB_Query[512];
 			FormatEx(gB_Query, 512, "DELETE FROM `players` WHERE `steamid` = '%s'", gB_SteamID64);
 			gB_DBSQL.Query(SQL_RemovePlayer_Callback, gB_Query, GetClientSerial(client), DBPrio_Normal);
@@ -346,8 +346,8 @@ public void SQL_InsertPlayer_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 	
-	char gB_SteamID64[17];
-	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17);
+	char gB_SteamID64[32];
+	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32);
 	
 	char gB_Query[512];
 	char gB_Query2[512];
@@ -552,8 +552,8 @@ void FuckingUpdateThatSHITHeadPlayer(int client, float timeonserver)
 		return;
 	}
 	
-	char gB_SteamID64[17];
-	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17);
+	char gB_SteamID64[32];
+	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32);
 	
 	
 	int gB_Seconds = RoundToZero(timeonserver);
