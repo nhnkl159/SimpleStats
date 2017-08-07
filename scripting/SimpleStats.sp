@@ -556,7 +556,7 @@ void FuckingUpdateThatSHITHeadPlayer(int client, float timeonserver)
 	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32);
 	
 	
-	int gB_Seconds = RoundToZero(timeonserver);
+	int gB_Seconds = RoundToNearest(timeonserver);
 	
 	char gB_Query[512];
 	FormatEx(gB_Query, 512, "UPDATE `players` SET `kills`= %d,`deaths`= %d,`shots`= %d,`hits`= %d,`headshots`= %d,`assists`= %d, `secsonserver` = secsonserver + %d WHERE `steamid` = '%s';", gB_PKills[client], gB_PDeaths[client], gB_PShots[client], gB_PHits[client], gB_PHS[client], gB_PAssists[client], gB_Seconds, gB_SteamID64);
