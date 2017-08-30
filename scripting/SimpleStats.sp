@@ -31,6 +31,8 @@ ConVar gB_PluginEnabled;
 ConVar gB_MinimumPlayers;
 ConVar gB_WarmUP;
 ConVar gB_CountKnife;
+ConVar gB_EnabledTop;
+ConVar gB_TopLimit;
 
 public Plugin myinfo = 
 {
@@ -49,6 +51,9 @@ public void OnPluginStart()
 	// === Player Commands === //
 	RegConsoleCmd("sm_stats", Cmd_Stats, "Command for client to open menu with his stats.");
 	
+	RegConsoleCmd("sm_top", Cmd_Top, "Command for client to open menu with top kills x players.");
+	
+	
 	// === Events === //
 	HookEvent("round_end", Event_RoundEnd);
 	HookEvent("player_death", Event_PlayerDeath);
@@ -60,11 +65,21 @@ public void OnPluginStart()
 	gB_MinimumPlayers = CreateConVar("sm_ss_minplayers", "4", "Minimum players to start record stats");
 	gB_WarmUP = CreateConVar("sm_ss_warmup", "1", "Record stats while we are in warmup ?");
 	gB_CountKnife = CreateConVar("sm_ss_countknife", "1", "Record knife as shot when client slash ?");
+	gB_EnabledTop = CreateConVar("sm_ss_topenabled", "1", "Enable the menu with top players?");
+	gB_TopLimit = CreateConVar("sm_ss_toplimit", "10", "Amount of people to display on sm_top");
 	
 	
 	SQL_StartConnection();
 	
 	AutoExecConfig(true, "sm_simplestats");
+	
+	for (int i = 0; i <= MaxClients; i++)
+	{
+		if (IsValidClient(i))
+		{
+			OnClientPutInServer(i);
+		}
+	}
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -79,16 +94,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	
 	RegPluginLibrary("simplestats");
 	
-	if (late)
-	{
-		for (int i = 0; i <= MaxClients; i++)
-		{
-			if (IsValidClient(i))
-			{
-				OnClientPutInServer(i);
-			}
-		}
-	}
 	
 	return APLRes_Success;
 }
@@ -122,8 +127,8 @@ public void OnClientPutInServer(int client)
 	char gB_PlayerName[MAX_NAME_LENGTH];
 	GetClientName(client, gB_PlayerName, MAX_NAME_LENGTH);
 	
-	char gB_SteamID64[17];
-	if (!GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17))
+	char gB_SteamID64[32];
+	if (!GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32))
 	{
 		KickClient(client, "Verification problem , please reconnect.");
 		return;
@@ -174,8 +179,11 @@ public Action Cmd_Stats(int client, int args)
 		return Plugin_Handled;
 	}
 	
-	char gB_SteamID64[17];
-	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17);
+	char gB_SteamID64[32];
+	if (!GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32))
+	{
+		return Plugin_Handled;
+	}
 	
 	OpenStatsMenu(client, client);
 	
@@ -233,7 +241,7 @@ public int Stats_MenuHandler(Menu menu, MenuAction action, int client, int item)
 {
 	if (action == MenuAction_End)
 	{
-		CloseHandle(menu);
+		delete menu;
 	}
 	
 	return 0;
@@ -295,8 +303,11 @@ public int AreYouSureHandler(Menu menu, MenuAction action, int client, int item)
 		{
 			int target = GetClientFromSerial(gB_RemoveClient[client]);
 			
-			char gB_SteamID64[17];
-			GetClientAuthId(target, AuthId_SteamID64, gB_SteamID64, 17);
+			char gB_SteamID64[32];
+			if (!GetClientAuthId(target, AuthId_SteamID64, gB_SteamID64, 32))
+			{
+				return 0;
+			}
 			char gB_Query[512];
 			FormatEx(gB_Query, 512, "DELETE FROM `players` WHERE `steamid` = '%s'", gB_SteamID64);
 			gB_DBSQL.Query(SQL_RemovePlayer_Callback, gB_Query, GetClientSerial(client), DBPrio_Normal);
@@ -330,6 +341,83 @@ public void SQL_RemovePlayer_Callback(Database db, DBResultSet results, const ch
 	gB_RemoveClient[client] = 0;
 }
 
+public Action Cmd_Top(int client, int args)
+{
+	if (!gB_EnabledTop.BoolValue)
+	{
+		return Plugin_Handled;
+	}
+	
+	char gB_Query[512];
+	
+	FormatEx(gB_Query, 512, "SELECT steamid, name, kills FROM `players` WHERE kills != 0 ORDER BY kills DESC LIMIT %d;", gB_TopLimit.IntValue);
+	gB_DBSQL.Query(SQL_SelectTop_Callback, gB_Query, GetClientSerial(client), DBPrio_Normal);
+	
+	
+	return Plugin_Handled;
+}
+
+public void SQL_SelectTop_Callback(Database db, DBResultSet results, const char[] error, any data)
+{
+	if (results == null)
+	{
+		LogError("[SS] Selecting players error. Reason: %s", error);
+		return;
+	}
+	
+	int client = GetClientFromSerial(data);
+	if (client == 0)
+	{
+		LogError("[SS] Client is not valid. Reason: %s", error);
+		return;
+	}
+	
+	Menu menu = new Menu(TopHandler);
+	char gS_Title[128];
+	Format(gS_Title, 128, "Top %d Killers", gB_TopLimit.IntValue);
+	menu.SetTitle(gS_Title);
+	
+	int gS_Count = 0;
+	while (results.FetchRow())
+	{
+		gS_Count++;
+		
+		//SteamID
+		char[] gS_SteamID = new char[32];
+		results.FetchString(0, gS_SteamID, 32);
+		
+		
+		//Player Name
+		char[] gS_PlayerName = new char[MAX_NAME_LENGTH];
+		results.FetchString(1, gS_PlayerName, MAX_NAME_LENGTH);
+		
+		//Kills
+		int gS_Kills = results.FetchInt(2);
+		
+		char gS_MenuContent[128];
+		Format(gS_MenuContent, 128, "%d - %s (%d kill%s)", gS_Count, gS_PlayerName, gS_Kills, gS_Kills > 1 ? "s":"");
+		menu.AddItem(gS_SteamID, gS_MenuContent);
+	}
+	
+	if (!gS_Count)
+	{
+		menu.AddItem("-1", "No results.");
+	}
+	
+	menu.ExitButton = true;
+	menu.Display(client, 20);
+}
+
+public int TopHandler(Menu menu, MenuAction action, int client, int item)
+{
+	if (action == MenuAction_End)
+	{
+		delete menu;
+	}
+	
+	return 0;
+}
+
 public void SQL_InsertPlayer_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
 	int client = GetClientFromSerial(data);
@@ -346,8 +434,12 @@ public void SQL_InsertPlayer_Callback(Database db, DBResultSet results, const ch
 		return;
 	}
 	
-	char gB_SteamID64[17];
-	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17);
+	char gB_SteamID64[32];
+	if (!GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32))
+	{
+		return;
+	}
+	
 	
 	char gB_Query[512];
 	char gB_Query2[512];
@@ -419,12 +511,12 @@ public void Event_PlayerDeath(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
-	if(GetPlayersCount() < gB_MinimumPlayers.IntValue)
+	if (GetPlayersCount() < gB_MinimumPlayers.IntValue)
 	{
 		return;
 	}
 	
-	if(InWarmUP() && !gB_WarmUP.BoolValue)
+	if (InWarmUP() && !gB_WarmUP.BoolValue)
 	{
 		return;
 	}
@@ -466,12 +558,12 @@ public void Event_WeaponFire(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
-	if(GetPlayersCount() < gB_MinimumPlayers.IntValue)
+	if (GetPlayersCount() < gB_MinimumPlayers.IntValue)
 	{
 		return;
 	}
 	
-	if(InWarmUP() && !gB_WarmUP.BoolValue)
+	if (InWarmUP() && !gB_WarmUP.BoolValue)
 	{
 		return;
 	}
@@ -484,7 +576,7 @@ public void Event_WeaponFire(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
-	if(!gB_CountKnife.BoolValue && StrEqual(FiredWeapon, "weapon_knife"))
+	if (!gB_CountKnife.BoolValue && StrEqual(FiredWeapon, "weapon_knife"))
 	{
 		return;
 	}
@@ -512,12 +604,12 @@ public void Event_PlayerHurt(Event e, const char[] name, bool dontBroadcast)
 		return;
 	}
 	
-	if(GetPlayersCount() < gB_MinimumPlayers.IntValue)
+	if (GetPlayersCount() < gB_MinimumPlayers.IntValue)
 	{
 		return;
 	}
 	
-	if(InWarmUP() && !gB_WarmUP.BoolValue)
+	if (InWarmUP() && !gB_WarmUP.BoolValue)
 	{
 		return;
 	}
@@ -552,11 +644,14 @@ void FuckingUpdateThatSHITHeadPlayer(int client, float timeonserver)
 		return;
 	}
 	
-	char gB_SteamID64[17];
-	GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 17);
+	char gB_SteamID64[32];
+	if (!GetClientAuthId(client, AuthId_SteamID64, gB_SteamID64, 32))
+	{
+		return;
+	}
 	
 	
-	int gB_Seconds = RoundToZero(timeonserver);
+	int gB_Seconds = RoundToNearest(timeonserver);
 	
 	char gB_Query[512];
 	FormatEx(gB_Query, 512, "UPDATE `players` SET `kills`= %d,`deaths`= %d,`shots`= %d,`hits`= %d,`headshots`= %d,`assists`= %d, `secsonserver` = secsonserver + %d WHERE `steamid` = '%s';", gB_PKills[client], gB_PDeaths[client], gB_PShots[client], gB_PHits[client], gB_PHS[client], gB_PAssists[client], gB_Seconds, gB_SteamID64);
@@ -655,7 +750,7 @@ stock int GetPlayersCount()
 	int count = 0;
 	for (int i = 0; i < MaxClients; i++)
 	{
-		if(IsValidClient(i))
+		if (IsValidClient(i))
 		{
 			count++;
 		}
@@ -707,7 +802,7 @@ public int Native_GetPlayTimeAmount(Handle handler, int numParams)
 	return gB_PlayTime[GetNativeCell(1)];
 }
 
-stock bool InWarmUP() 
+stock bool InWarmUP()
 {
 	return GameRules_GetProp("m_bWarmupPeriod") != 0;
 }
