@@ -5,6 +5,7 @@
 - [x] OnRoundEnd update stats.
 - [x] Admin command to reset players stats.
 - [x] Player command to check his stats.
+- [x] Top x players kills menu.
 
 Admin Commands
 -- 
@@ -13,6 +14,7 @@ Admin Commands
 Player Commands
 --
 - sm_stats - Command for client to open menu with his stats.
+- sm_top - Command for client to open menu with top kills x players.
 
 
 #  Installation:
