@@ -44,7 +44,7 @@ $maxplayers = 100;
       {
         echo '<tr>';
         echo '<td> <a href="http://steamcommunity.com/profiles/' . $row['steamid'] . '">' . $row['steamid'] . '</a></td>';
-        echo '<td>' . $row['name'] . '</td>';
+        echo '<td>' . htmlspecialchars($row['name']) . '</td>';
         echo '<td>' . $row['kills'] . '</td>';
 		echo '<td>' . $row['deaths'] . '</td>';
 		echo '<td>' . $row['shots'] . '</td>';
